@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <event.h>
 #include <omp.h>
+#include <time.h>
 #include "dualpivot_sequential.h"
 #include "dualpivot_tasks.h"
 #include "dualpivot_sections.h"
@@ -19,13 +19,10 @@ int compare(const void* left, const void* right)
 
 void shuffle(size_t* array, size_t n)
 {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  int usec = tv.tv_usec;
-  srand48(usec);
+  srand48(time(NULL));
   
   if (n > 1) {
-    for (size_t i = n - 1; i > 0; i--) {
+    for (size_t i = n - 1; i > 0; --i) {
       size_t j = (unsigned int) (drand48() * (i + 1));
       size_t t = array[j];
       array[j] = array[i];
