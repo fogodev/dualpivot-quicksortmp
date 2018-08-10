@@ -2,31 +2,32 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <time.h>
+#include <hbwmalloc.h>
 #include "dualpivot_sequential.h"
 #include "dualpivot_tasks.h"
 #include "dualpivot_sections.h"
 
-#define N 700000000
+#define N 100000000
 
 int compare(const void* left, const void* right)
 {
-  size_t lhs = *((size_t*) left);
-  size_t rhs = *((size_t*) right);
+  int lhs = *((int*) left);
+  int rhs = *((int*) right);
   if (lhs == rhs) return 0;
   else if (lhs > rhs) return 1;
   else return -1;
 }
 
-void shuffle(size_t* array, size_t n)
+void shuffle(int* array, size_t n)
 {
   srand48(time(NULL));
   
   if (n > 1) {
     for (size_t i = n - 1; i > 0; --i) {
       size_t j = (unsigned int) (drand48() * (i + 1));
-      size_t t = array[j];
+      int temp = array[j];
       array[j] = array[i];
-      array[i] = t;
+      array[i] = temp;
     }
   }
 }
@@ -50,14 +51,14 @@ int is_sorted(
 int main(int argc, char** argv)
 {
   puts("Preparing array...");
-  size_t* arr = (size_t*) malloc(N * sizeof(size_t));
+  int* arr = (int*) hbw_malloc(N * sizeof(int));
   if (!arr) exit(666);
-  for (size_t i = 0; i < N; ++i) {
+  for (int i = 0; i < N; ++i) {
     arr[i] = i;
   }
 
   shuffle(arr, N);
-  size_t* arr2 = (size_t*) malloc(N * sizeof(size_t));
+  int* arr2 = (int*) malloc(N * sizeof(int));
   if (!arr2) exit(666);
   for (size_t i = 0; i < N; ++i) {
     arr2[i] = arr[i];
@@ -65,45 +66,43 @@ int main(int argc, char** argv)
 
   printf("Sequential sorting...\n");
   double t_inicial = omp_get_wtime();
-  dualpivot_quicksort_sequential(arr, 0, N - 1, sizeof(size_t), compare);
+  dualpivot_quicksort_sequential(arr, 0, N - 1, sizeof(int), compare);
   double t_final = omp_get_wtime();
   printf("Elapsed time ordering %d elements sequentially: %lf\n", N, t_final - t_inicial);
 
   puts("Checking...");
-  int check = is_sorted(arr, sizeof(size_t), N, compare);
+  int check = is_sorted(arr, sizeof(int), N, compare);
   if (check) puts("Sequential sort is OK");
   else puts("Sequential sort is wrong");
-  free(arr);
-
-  size_t* arr3 = (size_t*) malloc(N * sizeof(size_t));
-  if (!arr3) exit(666);
+  
   for (size_t i = 0; i < N; ++i) {
-    arr3[i] = arr2[i];
+    arr[i] = arr2[i];
   }
 
   printf("Sorting with OpenMP Tasks...\n");
   t_inicial = omp_get_wtime();
-  dualpivot_quicksort_tasks(arr2, N, sizeof(size_t), compare);
+  dualpivot_quicksort_tasks(arr, N, sizeof(int), compare);
   t_final = omp_get_wtime();
   printf("Elapsed time ordering %d elements with OpenMP Tasks: %lf\n", N, t_final - t_inicial);
 
   puts("Checking...");
-  check = is_sorted(arr2, sizeof(size_t), N, compare);
+  check = is_sorted(arr, sizeof(int), N, compare);
   if (check) puts("Sort with OpenMP Tasks is OK");
   else puts("Sort with OpenMP Tasks is wrong");
+  hbw_free(arr);
   free(arr2);
 
-  printf("Sorting with OpenMP Sections...\n");
-  t_inicial = omp_get_wtime();
-  dualpivot_quicksort_sections(arr3, 0, N - 1, sizeof(size_t), compare);
-  t_final = omp_get_wtime();
-  printf("Elapsed time ordering %d elements with OpenMP Sections: %lf\n", N, t_final - t_inicial);
-
-  puts("Checking...");
-  check = is_sorted(arr3, sizeof(size_t), N, compare);
-  if (check) puts("Sort with OpenMP Sections is OK");
-  else puts("Sort with OpenMP Sections is wrong");
-  free(arr3);
+//  printf("Sorting with OpenMP Sections...\n");
+//  t_inicial = omp_get_wtime();
+//  dualpivot_quicksort_sections(arr3, 0, N - 1, sizeof(int), compare);
+//  t_final = omp_get_wtime();
+//  printf("Elapsed time ordering %d elements with OpenMP Sections: %lf\n", N, t_final - t_inicial);
+//
+//  puts("Checking...");
+//  check = is_sorted(arr3, sizeof(int), N, compare);
+//  if (check) puts("Sort with OpenMP Sections is OK");
+//  else puts("Sort with OpenMP Sections is wrong");
+//  free(arr3);
   
   return 0;
 }
