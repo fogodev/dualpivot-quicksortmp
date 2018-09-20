@@ -2,15 +2,15 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <time.h>
-#include <hbwmalloc.h>
+//#include <hbwmalloc.h>
 #include "dualpivot_sequential.h"
 #include "dualpivot_tasks.h"
 #include "dualpivot_sections.h"
 
-#define N 100000000
+const int NUM_TESTS  = 5;
+const int TEST_CASES[] = {100000, 1000000, 10000000, 100000000, 1000000000};
 
-int compare(const void* left, const void* right)
-{
+int compare(const void* left, const void* right) {
   int lhs = *((int*) left);
   int rhs = *((int*) right);
   if (lhs == rhs) return 0;
@@ -18,10 +18,9 @@ int compare(const void* left, const void* right)
   else return -1;
 }
 
-void shuffle(int* array, size_t n)
-{
+void shuffle(int* array, size_t n) {
   srand48(time(NULL));
-  
+
   if (n > 1) {
     for (size_t i = n - 1; i > 0; --i) {
       size_t j = (unsigned int) (drand48() * (i + 1));
@@ -32,77 +31,73 @@ void shuffle(int* array, size_t n)
   }
 }
 
-int is_sorted(
-    void* arr,
-    size_t type_size,
-    size_t n_elements,
-    int (* compare)(const void*, const void*))
-{
-  char* array = (char*) arr;
-  
-  for (size_t i = 1; i < n_elements; ++i) {
-    if (compare((array + type_size * (i - 1)), (array + type_size * i)) > 0) {
-      return 0;
+int main(int argc, char** argv) {
+
+  printf("Using %d threads at most\n\n", omp_get_thread_limit());
+
+  for (size_t current_test_index = 0; current_test_index != NUM_TESTS; ++current_test_index) {
+    int current_test = TEST_CASES[current_test_index];
+    double initial_time, final_time;
+      puts("############################################################");
+    printf("              Testing #%ld with %d elements\n", current_test_index + 1, current_test);
+      puts("############################################################\n");
+
+    puts("Preparing reference array...");
+    int* reference_array = (int*) malloc(current_test * sizeof(int));
+    if(!reference_array) exit(666);
+    for (volatile int i = 0; i != current_test; ++i)
+      reference_array[i] = i;
+
+    puts("Shuffling reference array");
+    shuffle(reference_array, current_test);
+
+    int* testing_array = (int*) malloc(current_test * sizeof(int));
+    //    int* sequential_array = (int*) hbw_malloc(current_test * sizeof(int));
+    if (!testing_array) exit(666);
+
+    for (int test_number = 1; test_number != 4; ++test_number) {
+      printf("Copying reference array to sequential sorting #%d\n", test_number);
+      for (volatile size_t i = 0; i != current_test; ++i)
+        testing_array[i] = reference_array[i];
+
+      puts("Sequential sorting... ");
+      initial_time = omp_get_wtime();
+      dualpivot_quicksort_sequential(testing_array, 0, current_test - 1, sizeof(int), compare);
+      final_time = omp_get_wtime();
+      printf("Elapsed time ordering %d elements sequentially #%d: %lf\n\n",
+          current_test, test_number, final_time - initial_time);
     }
-  }
-  return 1;
-}
 
-int main(int argc, char** argv)
-{
-  puts("Preparing array...");
-  int* arr = (int*) hbw_malloc(N * sizeof(int));
-  if (!arr) exit(666);
-  for (int i = 0; i < N; ++i) {
-    arr[i] = i;
-  }
+    for (int test_number = 1; test_number != 4; ++test_number) {
+      printf("Copying reference array to OpenMP Tasks sorting #%d\n", test_number);
+      for (volatile size_t i = 0; i != current_test; ++i)
+        testing_array[i] = reference_array[i];
 
-  shuffle(arr, N);
-  int* arr2 = (int*) malloc(N * sizeof(int));
-  if (!arr2) exit(666);
-  for (size_t i = 0; i < N; ++i) {
-    arr2[i] = arr[i];
-  }
+      puts("Sorting with OpenMP Tasks...");
+      initial_time = omp_get_wtime();
+      dualpivot_quicksort_tasks(testing_array, current_test, sizeof(int), compare);
+      final_time = omp_get_wtime();
+      printf("Elapsed time ordering %d elements with OpenMP Tasks #%d: %lf\n\n",
+          current_test, test_number, final_time - initial_time);
+    }
 
-  printf("Sequential sorting...\n");
-  double t_inicial = omp_get_wtime();
-  dualpivot_quicksort_sequential(arr, 0, N - 1, sizeof(int), compare);
-  double t_final = omp_get_wtime();
-  printf("Elapsed time ordering %d elements sequentially: %lf\n", N, t_final - t_inicial);
-
-  puts("Checking...");
-  int check = is_sorted(arr, sizeof(int), N, compare);
-  if (check) puts("Sequential sort is OK");
-  else puts("Sequential sort is wrong");
-  
-  for (size_t i = 0; i < N; ++i) {
-    arr[i] = arr2[i];
-  }
-
-  printf("Sorting with OpenMP Tasks...\n");
-  t_inicial = omp_get_wtime();
-  dualpivot_quicksort_tasks(arr, N, sizeof(int), compare);
-  t_final = omp_get_wtime();
-  printf("Elapsed time ordering %d elements with OpenMP Tasks: %lf\n", N, t_final - t_inicial);
-
-  puts("Checking...");
-  check = is_sorted(arr, sizeof(int), N, compare);
-  if (check) puts("Sort with OpenMP Tasks is OK");
-  else puts("Sort with OpenMP Tasks is wrong");
-  hbw_free(arr);
-  free(arr2);
-
-//  printf("Sorting with OpenMP Sections...\n");
-//  t_inicial = omp_get_wtime();
-//  dualpivot_quicksort_sections(arr3, 0, N - 1, sizeof(int), compare);
-//  t_final = omp_get_wtime();
-//  printf("Elapsed time ordering %d elements with OpenMP Sections: %lf\n", N, t_final - t_inicial);
+//    for (int test_number = 1; test_number != 4; ++test_number) {
+//      printf("Copying reference array to OpenMP Sections sorting #%d\n", test_number);
+//      for (volatile size_t i = 0; i != current_test; ++i)
+//        testing_array[i] = reference_array[i];
 //
-//  puts("Checking...");
-//  check = is_sorted(arr3, sizeof(int), N, compare);
-//  if (check) puts("Sort with OpenMP Sections is OK");
-//  else puts("Sort with OpenMP Sections is wrong");
-//  free(arr3);
-  
+//      puts("Sorting with OpenMP Sections...");
+//      initial_time = omp_get_wtime();
+//      dualpivot_quicksort_sections(testing_array, 0, current_test - 1, sizeof(int), compare);
+//      final_time = omp_get_wtime();
+//      printf("Elapsed time ordering %d elements with OpenMP Sections #%d: %lf\n\n",
+//          current_test, test_number, final_time - initial_time);
+//    }
+
+    free(reference_array);
+    free(testing_array);
+//    hbw_free(testing_array);
+  }
+
   return 0;
 }
