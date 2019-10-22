@@ -1,0 +1,10 @@
+#ifndef QUICKSORTMP_ORDER_H
+#define QUICKSORTMP_ORDER_H
+
+enum Order {
+  SMALLER = -1,
+  EQUAL = 0,
+  GREATER = 1,
+};
+
+#endif //QUICKSORTMP_ORDER_H

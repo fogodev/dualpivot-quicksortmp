@@ -2,21 +2,24 @@
 #define QUICKSORTMP_DUALPIVOT_TASKS_H
 
 #include <omp.h>
+#include <stddef.h>
 #include "partition.h"
+#include "order.h"
 
 void sort(
-    const void* array,
-    long long lower_index,
-    long long higher_index,
+    void* restrict array,
+    ptrdiff_t lower_index,
+    ptrdiff_t higher_index,
     size_t size,
-    int (* compare)(const void*, const void*))
-{
+    enum Order compare(const void*, const void*)
+) {
+
   if (lower_index < higher_index) {
-    long long left_pivot = 0;
-    long long right_pivot = 0;
-    
+    ptrdiff_t left_pivot = 0;
+    ptrdiff_t right_pivot = 0;
+
     partition(array, lower_index, higher_index, &left_pivot, &right_pivot, size, compare);
-    
+
     #pragma omp task default(none) firstprivate(array, lower_index, left_pivot, size, compare)
     {
       sort(array, lower_index, left_pivot - 1, size, compare);
@@ -32,12 +35,12 @@ void sort(
   }
 }
 
-void dualpivot_quicksort_tasks(
-    const void* array,
+void dual_pivot_quicksort_tasks(
+    void* restrict array,
     size_t n_elements,
     size_t size,
-    int (* compare)(const void*, const void*))
-{
+    enum Order compare(const void*, const void*)
+) {
   #pragma omp parallel default(none) shared(array, n_elements, size, compare)
   {
     #pragma omp single nowait
