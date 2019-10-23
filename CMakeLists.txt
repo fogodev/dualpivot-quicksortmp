@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.10)
 project(QuickSortMP C)
 
 set(CMAKE_BUILD_TYPE Release)
@@ -14,16 +14,16 @@ if (OPENMP_FOUND)
     add_executable(
             ${PROJECT_NAME}
             main.c
-            partition.h
-            dual_pivot_tasks.h
-            dualpivot_tasks_adaptive.h
-            dual_pivot_sequential.h
-            dual_pivot_sequential_adaptive.h
-            order.h
-            shuffle.h
             swap.h
+            order.h
             stats.h
+            shuffle.h
+            partition.h
             insertion_sort.h
+            dual_pivot_tasks.h
+            dual_pivot_sequential.h
+            dualpivot_tasks_adaptive.h
+            dual_pivot_sequential_adaptive.h
     )
     target_link_libraries(${PROJECT_NAME} m)
 else (OPENMP_FOUND)
