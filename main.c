@@ -13,6 +13,7 @@
 #include "dual_pivot_tasks.h"
 
 const size_t ITERATIONS_COUNT = 10;
+const size_t SEQUENTIAL_SORT_LIMIT = 500000000;
 const size_t TEST_CASES[] = {
     100000,      //       100_000
     131072,     //         2 ^ 17
@@ -195,46 +196,48 @@ void run_benchmarks() {
     /*******************************************************************************************************************
      *                                        SEQUENTIAL SORTING                                                       *
      ******************************************************************************************************************/
-    benchmark_and_report(
-        csv_file,
-        reference_array,
-        testing_array,
-        sizeof testing_array[0],
-        current_test,
-        "Sequential C qsort",
-        1,
-        int_compare,
-        qsort
-    );
+    if (current_test < SEQUENTIAL_SORT_LIMIT) {
+      benchmark_and_report(
+          csv_file,
+          reference_array,
+          testing_array,
+          sizeof testing_array[0],
+          current_test,
+          "Sequential C qsort",
+          1,
+          int_compare,
+          qsort
+      );
 
-    benchmark_and_report(
-        csv_file,
-        reference_array,
-        testing_array,
-        sizeof testing_array[0],
-        current_test,
-        "Pure Sequential Dual Pivot",
-        1,
-        int_compare,
-        dual_pivot_quicksort_sequential
-    );
+      benchmark_and_report(
+          csv_file,
+          reference_array,
+          testing_array,
+          sizeof testing_array[0],
+          current_test,
+          "Pure Sequential Dual Pivot",
+          1,
+          int_compare,
+          dual_pivot_quicksort_sequential
+      );
 
-    benchmark_and_report(
-        csv_file,
-        reference_array,
-        testing_array,
-        sizeof testing_array[0],
-        current_test,
-        "Adaptive Sequential Dual Pivot",
-        1,
-        int_compare,
-        dual_pivot_quicksort_sequential_adaptive
-    );
+      benchmark_and_report(
+          csv_file,
+          reference_array,
+          testing_array,
+          sizeof testing_array[0],
+          current_test,
+          "Adaptive Sequential Dual Pivot",
+          1,
+          int_compare,
+          dual_pivot_quicksort_sequential_adaptive
+      );
+    }
 
     /*******************************************************************************************************************
      *                                        PARALLEL SORTING                                                         *
      ******************************************************************************************************************/
-    for (size_t num_threads = 2; num_threads <= omp_get_num_procs(); num_threads <<= 1u) {
+    for (size_t num_threads = 2; num_threads <= omp_get_num_procs(); num_threads += 2) {
       benchmark_and_report(
           csv_file,
           reference_array,
