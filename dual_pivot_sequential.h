@@ -6,7 +6,8 @@
 #include "partition.h"
 #include "order.h"
 
-void dual_pivot_quicksort_sequential(
+static
+void sort(
     void* restrict array,
     ptrdiff_t lower_index,
     ptrdiff_t higher_index,
@@ -20,10 +21,19 @@ void dual_pivot_quicksort_sequential(
 
     partition(array, lower_index, higher_index, &left_pivot, &right_pivot, size, compare);
 
-    dual_pivot_quicksort_sequential(array, lower_index, left_pivot - 1, size, compare);
-    dual_pivot_quicksort_sequential(array, left_pivot + 1, right_pivot - 1, size, compare);
-    dual_pivot_quicksort_sequential(array, right_pivot + 1, higher_index, size, compare);
+    sort(array, lower_index, left_pivot - 1, size, compare);
+    sort(array, left_pivot + 1, right_pivot - 1, size, compare);
+    sort(array, right_pivot + 1, higher_index, size, compare);
   }
+}
+
+void dual_pivot_quicksort_sequential(
+    void* restrict array,
+    size_t length,
+    size_t size,
+    enum Order compare(const void*, const void*)
+) {
+  sort(array, 0, length - 1, size, compare);
 }
 
 #endif //QUICKSORTMP_DUAL_PIVOT_SEQUENTIAL_H

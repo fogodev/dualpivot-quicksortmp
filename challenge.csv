@@ -1,0 +1,3 @@
+Sort Name,Elements,E(T) (sec),± std deviation (%),Average time per element (sec),Number of threads
+Sequential Insertion Sort,10000,1.76e-02,1.73,1.76e-06,1
+Pure Sequential Dual Pivot,10000,1.48e-03,1.37,1.48e-07,1

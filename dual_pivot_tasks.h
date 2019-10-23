@@ -6,7 +6,7 @@
 #include "partition.h"
 #include "order.h"
 
-void sort(
+void sort_parallel(
     void* restrict array,
     ptrdiff_t lower_index,
     ptrdiff_t higher_index,
@@ -22,15 +22,15 @@ void sort(
 
     #pragma omp task default(none) firstprivate(array, lower_index, left_pivot, size, compare)
     {
-      sort(array, lower_index, left_pivot - 1, size, compare);
+      sort_parallel(array, lower_index, left_pivot - 1, size, compare);
     }
     #pragma omp task default(none) firstprivate(array, left_pivot, right_pivot, size, compare)
     {
-      sort(array, left_pivot + 1, right_pivot - 1, size, compare);
+      sort_parallel(array, left_pivot + 1, right_pivot - 1, size, compare);
     }
     #pragma omp task default(none) firstprivate(array, right_pivot, higher_index, size, compare)
     {
-      sort(array, right_pivot + 1, higher_index, size, compare);
+      sort_parallel(array, right_pivot + 1, higher_index, size, compare);
     }
   }
 }
@@ -45,7 +45,7 @@ void dual_pivot_quicksort_tasks(
   {
     #pragma omp single nowait
     {
-      sort(array, 0, n_elements - 1, size, compare);
+      sort_parallel(array, 0, n_elements - 1, size, compare);
     }
   }
 }
