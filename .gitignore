@@ -341,6 +341,5 @@ $RECYCLE.BIN/
 ##########  PROJECT  ##########
 CMakeFiles/*
 QuickSortMP
-results.csv
 
 # End of https://www.gitignore.io/api/c,vim,c++,linux,emacs,macos,windows,clion+all,sublimetext,archlinuxpackages,cmake
